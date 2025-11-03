@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Query
 import requests
 import difflib
+from typing import Optional
 
 app = FastAPI()
 
@@ -25,7 +26,7 @@ def fetch_7tv_emotes_by_twitch_id(twitch_id: str):
 
 
 def fetch_7tv_global_emotes():
-    """Fetch global 7TV emotes (for when twitch_id=0 or missing)."""
+    """Fetch global 7TV emotes."""
     try:
         resp = requests.get("https://7tv.io/v3/emote-sets/global", timeout=10)
         resp.raise_for_status()
@@ -39,17 +40,18 @@ def fetch_7tv_global_emotes():
 
 @app.get("/7tv")
 def search_7tv_emotes(
-    name: str = Query(..., description="Emote name to search for"),
-    twitch_id: str = Query(
-        "0",
+    name: Optional[str] = Query(None, description="Emote name to search for (optional)"),
+    twitch_id: Optional[str] = Query(
+        None,
         description="Comma-separated Twitch user IDs. Use 0 or leave empty for global emotes.",
     ),
-    limit: int = Query(5, ge=1, le=100, description="Number of results to return"),
+    limit: Optional[int] = Query(None, ge=1, le=1000, description="Number of results to return (optional)"),
 ):
-    """Return best matching emotes from given Twitch IDs or global set."""
+    """Return emotes from Twitch user(s) or global set, optionally filtered by name."""
     all_emotes = []
 
-    twitch_ids = [tid.strip() for tid in twitch_id.split(",") if tid.strip()]
+    # Determine which emote set to use
+    twitch_ids = [tid.strip() for tid in (twitch_id or "").split(",") if tid.strip()]
     if not twitch_ids or twitch_ids == ["0"]:
         print("ℹ️ Using global 7TV emotes")
         all_emotes = fetch_7tv_global_emotes()
@@ -61,24 +63,30 @@ def search_7tv_emotes(
     if not all_emotes:
         return {"results": []}
 
-    # Compute similarity
-    def _score(candidate: str):
-        return difflib.SequenceMatcher(None, candidate.lower(), name.lower()).ratio()
+    # If a name is provided, sort by similarity
+    if name:
+        def _score(candidate: str):
+            return difflib.SequenceMatcher(None, candidate.lower(), name.lower()).ratio()
 
-    sorted_emotes = sorted(
-        all_emotes,
-        key=lambda e: _score(e.get("name", "")),
-        reverse=True,
-    )
+        all_emotes = sorted(
+            all_emotes,
+            key=lambda e: _score(e.get("name", "")),
+            reverse=True,
+        )
+
+    # Apply limit (if given)
+    if limit:
+        all_emotes = all_emotes[:limit]
 
     results = []
-    for emote in sorted_emotes[:limit]:
+    for emote in all_emotes:
         host = emote.get("host") or {}
         files = host.get("files") or []
         if not files:
             continue
 
         base = host.get("url")
+
         # ✅ Prefer GIF if available, otherwise WEBP
         gif_files = [f["name"] for f in files if f["name"].endswith(".gif")]
         webp_files = [f["name"] for f in files if f["name"].endswith(".webp")]
