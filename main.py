@@ -104,16 +104,20 @@ def search_7tv_emotes(
 
         base = host.get("url")
 
-        # ✅ Prefer GIF if available, otherwise WEBP
+        # ✅ Prefer 2x size for performance (or fallback gracefully)
         gif_files = [f["name"] for f in files if f["name"].endswith(".gif")]
         webp_files = [f["name"] for f in files if f["name"].endswith(".webp")]
 
+        chosen_file = None
+
+        # Try to pick 2x version first (smaller but still clear)
         if gif_files:
-            chosen_file = gif_files[-1]
+            chosen_file = next((f for f in gif_files if f.startswith("2x")), gif_files[0])
         elif webp_files:
-            chosen_file = webp_files[-1]
+            chosen_file = next((f for f in webp_files if f.startswith("2x")), webp_files[0])
         else:
-            chosen_file = files[-1]["name"]
+            chosen_file = files[0]["name"]
+
 
         url = f"https:{base}/{chosen_file}"
 
