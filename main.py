@@ -1,9 +1,26 @@
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import difflib
 from typing import Optional
 
 app = FastAPI()
+
+# 🌍 Allow only your website
+origins = [
+    "https://ttvthreads.vercel.app",
+    "https://www.ttvthreads.vercel.app",
+    "https://ttvthreads.vercel.app/",
+    "ttvthreads.vercel.app",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,        # allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],          # allow all methods (GET, POST, etc.)
+    allow_headers=["*"],          # allow all headers
+)
 
 
 @app.get("/healthz")
