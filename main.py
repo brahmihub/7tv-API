@@ -112,9 +112,9 @@ def search_7tv_emotes(
 
         # Try to pick 1x variant first for speed
         if gif_files:
-            chosen_file = next((f for f in gif_files if f.startswith("1x")), gif_files[0])
+            chosen_file = next((f for f in gif_files if f.startswith("2x")), gif_files[0])
         elif webp_files:
-            chosen_file = next((f for f in webp_files if f.startswith("1x")), webp_files[0])
+            chosen_file = next((f for f in webp_files if f.startswith("2x")), webp_files[0])
         else:
             chosen_file = files[0]["name"]
 
