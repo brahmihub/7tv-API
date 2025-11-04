@@ -99,6 +99,19 @@ def search_7tv_emotes(
             chosen_file = files[-1]["name"]
 
         url = f"https:{base}/{chosen_file}"
-        results.append({"name": emote.get("name"), "url": url})
+
+        # 🧩 Detect overlay (zero-width) emotes via flags bitmask
+        flags = emote.get("flags", 0)
+        is_overlay = bool(flags & 256)
+
+        # 🧠 Get owner username (if available)
+        owner = emote.get("owner", {}).get("username", "unknown")
+
+        results.append({
+            "name": emote.get("name"),
+            "url": url,
+            "owner": owner,
+            "is_overlay": is_overlay
+        })
 
     return {"results": results}
